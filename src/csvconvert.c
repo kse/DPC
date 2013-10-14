@@ -40,8 +40,8 @@
  * All datapoints are written as single precision floats.
  *
  * TODO
- * * Allow specifying output file
- * * Make flag to acknowledge header
+ * * Allow specifying output file, right now it's just 'output'.
+ * * Make flag to specify if there is a header in the CSV.
  */
 
 int read_point(char *mapped, uint length, int dims, float **ret,
@@ -92,6 +92,7 @@ int main(int argc, char **argv) {
 	uint in_p = 0;
 	int read = 0;
 	int dim = 0;
+	uint32_t length = 0;
 
 	FILE *output = fopen("output", "w");
 
@@ -106,10 +107,29 @@ int main(int argc, char **argv) {
 		if(dim == 0) {
 			dim = read;
 			fwrite(&dim, sizeof(int), 1, output);
+			fwrite(&length, sizeof(uint32_t), 1, output);
+
+			char zero = 0;
+			int leftover = sysconf(_SC_PAGESIZE) - 
+				((sizeof(uint32_t) + sizeof(int)) % sysconf(_SC_PAGESIZE));
+
+			//printf("Size is %lu\n", sizeof(uint32_t) + sizeof(int));
+			//printf("Pagesize %ld\n", sysconf(_SC_PAGESIZE));
+			//printf("Writing an additional %d bytes\n", leftover);
+
+			for(int i = 0; i < leftover; i++) {
+				fwrite(&zero, 1, 1, output);
+			}
 		}
+
+		length++;
 
 		fwrite(point, sizeof(float), dim, output);
 	}
+
+	// Update the data with the total length.
+	fseek(output, (long)sizeof(int), SEEK_SET);
+	fwrite(&length, sizeof(uint32_t), 1, output);
 
 	fclose(output);
 	free(point);
@@ -265,8 +285,6 @@ int read_point(char *mapped, uint length, int dims, float **ret,
 				int k = (intptr_t)ep->data;
 				v = (float)k;
 			}
-
-			//printf("V: %f\n", v);
 		}
 
 		// Check if ret is big enough, else realloc

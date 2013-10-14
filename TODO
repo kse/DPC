@@ -2,6 +2,8 @@ Stikord til titel:
 Implementing k-means|| efficiently on CUDA devices. Ready to handle data-sets
 that exceed the size of GPU total memory.
 
-
-TODO:
-* Program til at tage csv data-fil og lave det om til fast dataformat.
+PLAN:
+* Implementer k-means|| som en triviel CPU algoritme, der kan læse data der 
+  passer ind i hukommelsen. 
+* Implementer k-means|| på GPU'en, i en triviel algoritme, der kun kan læse
+  data der passer i hukommelsen.
