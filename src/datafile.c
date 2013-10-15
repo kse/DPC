@@ -72,17 +72,11 @@ uint32_t df_length(int fd) {
 	return val;
 }
 
-float *dfm_getpoint(dps_t *X, int p) {
-	//int offset = sizeof(int) + sizeof(uint32_t) + X->dim * p;
-
-	//float *point = malloc(sizeof(float) * X->dim);
-
-	//memcpy(point, &X->v[p], sizeof(float) * X->dim);
-
+inline float *dfm_getpoint(dps_t *X, int p) {
 	return &X->v[p * X->dim];
 }
 
-// TODO: Implement
+// TODO: Implement maybe?
 //float *dfm_getpoint_deep(dps_t *X, int p, dp_t o) {
 //	//int offset = sizeof(int) + sizeof(uint32_t) + X->dim * p;
 //
@@ -95,7 +89,7 @@ float *dfm_getpoint(dps_t *X, int p) {
 
 void df_mmap(int fd, dps_t *X) {
 	int allocsize = X->len * X->dim * sizeof(float);
-	printf("Trying to alloc %d bytes\n", allocsize);
+	//printf("Trying to alloc %d bytes\n", allocsize);
 
 	float *in = (float *)mmap(NULL,
 			allocsize,
@@ -112,4 +106,75 @@ void df_mmap(int fd, dps_t *X) {
 
 void df_munmap(dps_t *X) {
 	munmap(X->v, X->len * X->dim * sizeof(float));
+}
+
+void datapoint_array_new(datapoint_array_t **A, int dim) {
+	*A = malloc(sizeof(struct datapoint_array));
+
+	if(*A == NULL) {
+		fprintf(stderr, "Cannot allocate new dpa: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	(*A)->size = 4;
+	(*A)->len  = 0;
+	(*A)->dim  = dim;
+
+	(*A)->v = malloc(INIT_DATAPOINTS_ARRAY_SIZE * sizeof(float *));
+
+	if((*A)->v == NULL) {
+		fprintf(stderr, "Cannot allocate new dpa store: %s\n",
+				strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+}
+
+void datapoint_array_add(datapoint_array_t *A, float *p) {
+	// NB: Make damned sure the point is of the same dimension as A->dim
+	
+	if(A->size == A->len) {
+		// Expand to double size
+
+		printf("Adding to dpa\n");
+		fflush(stdout);
+		float **new = realloc(A->v, A->size * 2 * sizeof(float *));
+		if(new == NULL) {
+			fprintf(stderr, "Unable to realloc dpa_t: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+		A->v = new;
+		A->size *= 2;
+	}
+
+	A->v[A->len] = p;
+	A->len++;
+}
+
+void datapoint_array_free(datapoint_array_t *A) {
+	free(A->v);
+	free(A);
+}
+
+void datapoint_array_merge(datapoint_array_t *A, datapoint_array_t *B) {
+	if(B->len == 0) {
+		return;
+	}
+
+	if((A->size - A->len) < B->len ) {
+		float **new = realloc(A->v, (A->size * 2 + B->len) * sizeof(float *));
+
+		if(new == NULL) {
+			fprintf(stderr, "Unable to merge dpa_t: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+		A->v = new;
+		A->size *= 2;
+		A->size += B->len;
+	}
+
+	memcpy(&(A->v[A->len]), B->v, B->len * sizeof(float *));
+	A->len += B->len;
+	B->len = 0;
 }

@@ -122,6 +122,10 @@ int main(int argc, char **argv) {
 			}
 		}
 
+		if(read != dim) {
+			fprintf(stderr, "WARNING: Going from dim %d to %d\n", dim, read);
+		}
+
 		length++;
 
 		fwrite(point, sizeof(float), dim, output);

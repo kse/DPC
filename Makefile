@@ -4,12 +4,12 @@ INC = -I src
 LIB = -L lib
 
 CSVCONVERT = build/csvconvert.o
-KMEANS = build/kmeans.o build/datafile.o
+KMEANS = build/kmeans.o build/datafile.o build/kmeans_cpu_impl.o
 
 all: kmeans csvconvert
 
 kmeans: $(KMEANS)
-	$(CC) $(CFLAGS) $(LIB) -o $@ $^
+	$(CC) $(CFLAGS) $(LIB) -o $@ $^ -lm
 
 csvconvert: $(CSVCONVERT)
 	$(CC) $(CFLAGS) $(LIB) -o $@ $^

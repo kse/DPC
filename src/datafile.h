@@ -1,19 +1,39 @@
 #include <stdint.h>
 #include <unistd.h>
 
-struct dps {
-	int dim;
-	int len;
+#define INIT_DATAPOINTS_ARRAY_SIZE 4
+
+/*
+ * Datapoints structure. Laid out in continuous memory
+ */
+struct datapoints {
+	int dim;      // Length of a single element in dim
+	int len;      // # of elements of size dim in v
 	float *v;
 };
 
-struct dp {
-	int dim;
+/*
+ * A single datapoint
+ */
+struct datapoint {
+	int dim;  // Length of v
 	float *v;
 };
 
-typedef struct dps dps_t;
-typedef struct dp dp_t;
+/*
+ * An array of datapoints, that don't point to continuous memory
+ */
+struct datapoint_array {
+	int size;    // Allocated space for v
+	int len;     // Length of v.
+	int dim;     // Length of *v
+	float **v;
+};
+
+typedef struct datapoints dps_t;
+typedef struct datapoint dp_t;
+typedef struct datapoint datapoint_t;
+typedef struct datapoint_array datapoint_array_t;
 
 /*
  * Open a datafile, exits on failure. Returns filehandle.
@@ -41,3 +61,8 @@ float *dfm_getpoint(dps_t *X, int p);
  */
 void df_mmap(int fd, dps_t *X);
 void df_munmap(dps_t *X);
+
+void datapoint_array_add(datapoint_array_t *A, float *p);
+void datapoint_array_new(datapoint_array_t **A, int dim);
+void datapoint_array_free(datapoint_array_t *A);
+void datapoint_array_merge(datapoint_array_t *A, datapoint_array_t *B);

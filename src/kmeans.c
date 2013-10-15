@@ -1,19 +1,22 @@
 #define _GNU_SOURCE
 
 #include "datafile.h"
+#include "kmeans_cpu_impl.h"
+#include "kmeans.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
 
-#include <kmeans.h>
-
 #include <errno.h>
 #include <stdint.h>
 
 // For time()
 #include <time.h>
+
+#include <float.h>
+#include <math.h>
 
 /*
  * The amount k of clusters we want to find
@@ -45,18 +48,22 @@ void init_kmeans(int fd) {
 	int initial = rand() % X.len;
 
 	printf("Initial value is %d\n", initial);
-	
-	float *init = dfm_getpoint(&X, 0);
+
+	float *in = dfm_getpoint(&X, initial);
 
 	for(int i = 0; i < X.dim; i++) {
-		printf("%f\n", init[i]);
+		printf("%f\n", in[i]);
 	}
 
+	datapoint_array_t *C;
+	datapoint_array_new(&C, X.dim);
+	datapoint_array_add(C, in);
+
+	sample(&X, C, k);
+
+	datapoint_array_free(C);
 	df_munmap(&X);
 }
-
-//double cost(dps_t *X, dp_t **C) {
-//}
 
 void handle_options(int argc, char **argv) {
 	int optret = 0;
