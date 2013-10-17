@@ -113,10 +113,6 @@ int main(int argc, char **argv) {
 			int leftover = sysconf(_SC_PAGESIZE) - 
 				((sizeof(uint32_t) + sizeof(int)) % sysconf(_SC_PAGESIZE));
 
-			//printf("Size is %lu\n", sizeof(uint32_t) + sizeof(int));
-			//printf("Pagesize %ld\n", sysconf(_SC_PAGESIZE));
-			//printf("Writing an additional %d bytes\n", leftover);
-
 			for(int i = 0; i < leftover; i++) {
 				fwrite(&zero, 1, 1, output);
 			}
@@ -302,7 +298,7 @@ int read_point(char *mapped, uint length, int dims, float **ret,
 	}
 
 	if((uint)dim < ret_size) {
-		printf("Dealloccing to %d\n", dim);
+		//printf("Dealloccing to %d\n", dim);
 		*ret = realloc((void *)*ret, dim * sizeof(float));
 	}
 
