@@ -119,6 +119,7 @@ void datapoint_array_new(datapoint_array_t **A, int dim) {
 	(*A)->size = 4;
 	(*A)->len  = 0;
 	(*A)->dim  = dim;
+	(*A)->deep = 0;
 
 	(*A)->v = malloc(INIT_DATAPOINTS_ARRAY_SIZE * sizeof(float *));
 
@@ -133,10 +134,7 @@ void datapoint_array_add(datapoint_array_t *A, float *p) {
 	// NB: Make damned sure the point is of the same dimension as A->dim
 	
 	if(A->size == A->len) {
-		// Expand to double size
-
-		printf("Adding to dpa\n");
-		fflush(stdout);
+		// Expand to double size be realloccing.
 		float **new = realloc(A->v, A->size * 2 * sizeof(float *));
 		if(new == NULL) {
 			fprintf(stderr, "Unable to realloc dpa_t: %s\n", strerror(errno));
@@ -147,16 +145,29 @@ void datapoint_array_add(datapoint_array_t *A, float *p) {
 		A->size *= 2;
 	}
 
-	A->v[A->len] = p;
+	if(A->deep == 1) {
+		A->v[A->len] = malloc(A->dim * sizeof(float));
+		memcpy(A->v[A->len], p, A->dim * sizeof(float));
+	} else {
+		A->v[A->len] = p;
+	}
 	A->len++;
 }
 
 void datapoint_array_free(datapoint_array_t *A) {
+	if(A->deep == 1) {
+		fflush(stdout);
+		for(int i = 0; i < A->len; i++) {
+			free(A->v[i]);
+		}
+	}
+
 	free(A->v);
 	free(A);
 }
 
 void datapoint_array_merge(datapoint_array_t *A, datapoint_array_t *B) {
+	// TODO: Implement handling of deep datapoint arrays.
 	if(B->len == 0) {
 		return;
 	}
@@ -177,4 +188,22 @@ void datapoint_array_merge(datapoint_array_t *A, datapoint_array_t *B) {
 	memcpy(&(A->v[A->len]), B->v, B->len * sizeof(float *));
 	A->len += B->len;
 	B->len = 0;
+}
+
+void datapoint_array_deepcopy(datapoint_array_t **dest,
+		datapoint_array_t *src) {
+	*dest = malloc(sizeof(datapoint_array_t));
+
+	(*dest)->len  = src->len;
+	(*dest)->dim  = src->dim;
+	(*dest)->deep = 1;
+
+	(*dest)->v = malloc(src->len * sizeof(float *));
+
+	memcpy((*dest)->v, src->v, src->len * sizeof(float *));
+
+	for(int i = 0; i < src->len; i++) {
+		(*dest)->v[i] = malloc(sizeof(float) * src->dim);
+		memcpy((*dest)->v[i], src->v[i], sizeof(float) * src->dim);
+	}
 }

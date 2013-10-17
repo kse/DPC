@@ -27,7 +27,9 @@ struct datapoint_array {
 	int size;    // Allocated space for v
 	int len;     // Length of v.
 	int dim;     // Length of *v
-	float **v;
+	int deep;    // Whether or not each element in v is allocated for
+				 // this struct
+	float **v;   // The values. What else?
 };
 
 typedef struct datapoints dps_t;
@@ -62,7 +64,12 @@ float *dfm_getpoint(dps_t *X, int p);
 void df_mmap(int fd, dps_t *X);
 void df_munmap(dps_t *X);
 
+/*
+ * Operations on the datapoint_array type.
+ */
 void datapoint_array_add(datapoint_array_t *A, float *p);
 void datapoint_array_new(datapoint_array_t **A, int dim);
 void datapoint_array_free(datapoint_array_t *A);
 void datapoint_array_merge(datapoint_array_t *A, datapoint_array_t *B);
+void datapoint_array_deepcopy(datapoint_array_t **dest, 
+		datapoint_array_t *src);
