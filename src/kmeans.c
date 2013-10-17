@@ -43,24 +43,19 @@ void init_kmeans(int fd) {
 	dps_t X;
 	X.len = df_length(fd);
 	X.dim = df_dim(fd);
+
+	// MMAP our input file.
 	df_mmap(fd, &X);
 
-	int initial = rand() % X.len;
+	/*
+	 * Do the k-means|| initialization. That is, sample ψ = log(ϕ) times.
+	 * TODO: Figure out how many rounds we want to run.
+	 * Gives our sampled centers.
+	 */
+	datapoint_array_t *C = kmeans_parallel_init(&X, k);
+	kmeanspp_impl(&X, C);
 
-	printf("Initial value is %d\n", initial);
-
-	float *in = dfm_getpoint(&X, initial);
-
-	for(int i = 0; i < X.dim; i++) {
-		printf("%f\n", in[i]);
-	}
-
-	datapoint_array_t *C;
-	datapoint_array_new(&C, X.dim);
-	datapoint_array_add(C, in);
-
-	sample(&X, C, k);
-
+	//printf("Received %d initial centers\n", C->len);
 	datapoint_array_free(C);
 	df_munmap(&X);
 }
