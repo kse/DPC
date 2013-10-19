@@ -30,30 +30,23 @@ kmeans_parallel_init(dps_t *X, int k) {
 	 * Create storage for our selected set, and add the initial point
 	 */
 	datapoint_array_t *C;
-	datapoint_array_new(&C, X->dim);
+	datapoint_array_new(&C, X->dim, 0);
 	datapoint_array_add(C, in);
-
-	/*
-	datapoint_array_t *res1 = NULL;
-	datapoint_array_deepcopy(&res1, C);
-	return res1;
-	*/
 
 	float phi = cost(X, C);
 	float p = 0.0;
-	//printf("Initial cost is %f\n", phi);
 
 	datapoint_array_t *Cprime;
-	datapoint_array_new(&Cprime, C->dim);
+	datapoint_array_new(&Cprime, C->dim, 0);
 
 	int logphi = (int)logf(phi);
-	//printf("Logphi: %d\n", logphi);
 
 	for(int j = 0; j < logphi; j++) {
 		/*
 		 * Break out of our loop early?
+		 * TODO: Really?
 		 */
-		if(C->len > 2*k) {
+		if(C->len > 3*k - 1) {
 			break;
 		}
 
@@ -64,15 +57,10 @@ kmeans_parallel_init(dps_t *X, int k) {
 			p = powf(p, 2);
 			p *= k/2;
 
-			//float pre_p = p;
 			p = p/phi;
 
 			int r = rand();
 			if(r < RAND_MAX * p) {
-				//printf("Selected %d\n", i);
-				//printf("Prob is: %.20f\n", p);
-				//printf("Pre-P is %f\n", pre_p);
-
 				datapoint_array_add(Cprime, x.v);
 			}
 
@@ -103,9 +91,10 @@ kmeans_parallel_init(dps_t *X, int k) {
 
 	printf(" %f\n", phi);
 	printf("%d datapoints\n", C->len);
+	printf("%f cost of C unminimized\n", cost(X, C));
 	//printf("%f cost of cprime\n", cost(X, Cprime));
 	
-	printf("Done sampling\n");
+	//printf("Done sampling\n");
 	
 	datapoint_array_t *res = NULL;
 	datapoint_array_deepcopy(&res, Cprime);
@@ -147,6 +136,8 @@ void kmeanspp_impl(dps_t *X, datapoint_array_t *C) {
 	cos = cost(X, C);
 
 	printf("Initial cost %f\n", cos);
+
+	int its = 0;
 
 	do {
 		// Remember previous total cost.
@@ -216,7 +207,9 @@ void kmeanspp_impl(dps_t *X, datapoint_array_t *C) {
 		printf("Prev_Cost is:%f\n", prev_cos);
 		printf("Cost is:     %f\n", cos);
 
-	} while( fabsf(prev_cos - cos) > 100);
+		its ++;
+	} while(its < 50);
+	//} while( fabsf(prev_cos - cos) > 100);
 
 	/*
 	for(i = 0; i < C->len; i++) {
@@ -280,6 +273,8 @@ float dist(dp_t *x, datapoint_array_t *C) {
 		c.v = C->v[i];
 
 		for(int j = 0; j < x->dim; j++) {
+			//printf("C[%d] = %f\n", j, c.v[j]);
+			//printf("X[%d] = %f\n", j, x->v[j]);
 			tsum += powf(x->v[j] - c.v[j], 2);
 		}
 

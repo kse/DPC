@@ -2,6 +2,7 @@
 
 #include "datafile.h"
 #include "kmeans_cpu_impl.h"
+#include "kmeans_gpu.h"
 #include "kmeans.h"
 
 #include <stdio.h>
@@ -22,6 +23,7 @@
  * The amount k of clusters we want to find
  */
 long int k = 4;
+int on_cpu = 0;
 
 int main(int argc, char **argv) {
 	// Sets global variables, exits on error.
@@ -47,16 +49,34 @@ void init_kmeans(int fd) {
 	// MMAP our input file.
 	df_mmap(fd, &X);
 
-	/*
-	 * Do the k-means|| initialization. That is, sample ψ = log(ϕ) times.
-	 * TODO: Figure out how many rounds we want to run.
-	 * Gives our sampled centers.
-	 */
-	datapoint_array_t *C = kmeans_parallel_init(&X, k);
-	kmeanspp_impl(&X, C);
 
-	//printf("Received %d initial centers\n", C->len);
-	datapoint_array_free(C);
+	if(on_cpu) {
+		/*
+		 * Do the k-means|| initialization. That is, sample ψ = log(ϕ) times.
+		 * TODO: Figure out how many rounds we want to run.
+		 * Gives our sampled centers.
+		 */
+		datapoint_array_t *C = kmeans_parallel_init(&X, k);
+
+		/*
+		 * Run the k-means Lloyd iteration, this is the time waster.
+		 * So maybe we should do something with the data afterwards?
+		 * Like print it, so we can plot it..
+		 */
+		kmeanspp_impl(&X, C);
+
+		/*
+		 * Let go of our data.
+		 */
+		datapoint_array_free(C);
+
+	} else {
+		datapoint_array_t *C = kmeans_parallel_gpu_init(&X, k);
+
+		kmeanspp_impl(&X, C);
+
+		datapoint_array_free(C);
+	}
 	df_munmap(&X);
 }
 
@@ -69,11 +89,16 @@ void handle_options(int argc, char **argv) {
 
 	static struct option long_options[] = {
 		{"clusters",  required_argument, 0, 'k'},
+		{"cpu",       no_argument,       0, 'c'},
 		{0,           0,                 0,  0 }     
 	};
 	
 	while( (optret = getopt_long(argc, argv, opt, long_options, NULL)) != -1) {
 		char *end = 0; // Store end of parsed. To check for errors
+
+		// TODO:
+		// * Accept input file
+		// * Take a flag that tells us to use the GPU or not.
 
 		switch(optret) {
 			case 'k': 
@@ -92,11 +117,13 @@ void handle_options(int argc, char **argv) {
 							"Warning, k value overflow/underflow\n");
 				}
 				break;
+			case 'c':
+				on_cpu = 1;
+				break;
 			default: // We hit '?'
 				//TODO: Print some usage information.
 				exit(EXIT_FAILURE);
 				break;
 		}
-
 	}
 }

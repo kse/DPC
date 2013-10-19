@@ -1,9 +1,10 @@
 CC = gcc
-CFLAGS = -O3 -fomit-frame-pointer -std=c11 -Wall -Wextra -pedantic -g
+CFLAGS = -O3 -std=c11 -Wall -Wextra -pedantic -g -fomit-frame-pointer
 INC = -I src
 LIB = -L lib
 
 CUDA_LIB  ?= -L /opt/cuda/lib64
+CUDA_FLAGS = --ptxas-options=-v
 
 CC_LINK = -lm -lcuda -lcudart -lstdc++
 
@@ -26,7 +27,7 @@ build/%.o: src/%.c
 
 build/%.o: src/%.cu
 	mkdir -p build
-	nvcc $< -o $@ -lcuda -c $(INC)
+	nvcc $< -o $@ -lcuda -c $(INC) $(CUDA_FLAGS)
 
 clean:
 	rm -rf build

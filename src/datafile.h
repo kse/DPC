@@ -1,3 +1,6 @@
+#ifndef DATAFILE_H
+#define DATAFILE_H
+
 #include <stdint.h>
 #include <unistd.h>
 
@@ -10,7 +13,7 @@ struct datapoints {
 	int dim;      // Length of a single element in dim
 	int len;      // # of elements of size dim in v
 	float *v;
-};
+} __attribute__ ((aligned));
 
 /*
  * A single datapoint
@@ -18,7 +21,7 @@ struct datapoints {
 struct datapoint {
 	int dim;  // Length of v
 	float *v;
-};
+} __attribute__ ((aligned));
 
 /*
  * An array of datapoints, that don't point to continuous memory
@@ -30,7 +33,7 @@ struct datapoint_array {
 	int deep;    // Whether or not each element in v is allocated for
 				 // this struct
 	float **v;   // The values. What else?
-};
+} __attribute__ ((aligned));
 
 typedef struct datapoints dps_t;
 typedef struct datapoint dp_t;
@@ -68,8 +71,10 @@ void df_munmap(dps_t *X);
  * Operations on the datapoint_array type.
  */
 void datapoint_array_add(datapoint_array_t *A, float *p);
-void datapoint_array_new(datapoint_array_t **A, int dim);
+void datapoint_array_new(datapoint_array_t **A, int dim, int deep);
 void datapoint_array_free(datapoint_array_t *A);
 void datapoint_array_merge(datapoint_array_t *A, datapoint_array_t *B);
 void datapoint_array_deepcopy(datapoint_array_t **dest, 
 		datapoint_array_t *src);
+
+#endif

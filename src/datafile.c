@@ -108,7 +108,7 @@ void df_munmap(dps_t *X) {
 	munmap(X->v, X->len * X->dim * sizeof(float));
 }
 
-void datapoint_array_new(datapoint_array_t **A, int dim) {
+void datapoint_array_new(datapoint_array_t **A, int dim, int deep) {
 	*A = malloc(sizeof(struct datapoint_array));
 
 	if(*A == NULL) {
@@ -119,7 +119,7 @@ void datapoint_array_new(datapoint_array_t **A, int dim) {
 	(*A)->size = 4;
 	(*A)->len  = 0;
 	(*A)->dim  = dim;
-	(*A)->deep = 0;
+	(*A)->deep = deep ? 1 : 0;
 
 	(*A)->v = malloc(INIT_DATAPOINTS_ARRAY_SIZE * sizeof(float *));
 
