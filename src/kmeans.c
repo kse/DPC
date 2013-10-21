@@ -93,10 +93,21 @@ void init_kmeans(int fd) {
 		write_datapoint_array(C, "output.csv");
 
 		datapoint_array_free(C);
+
 	} else {
 		datapoint_array_t *C = kmeans_parallel_gpu_init_v1(&X, k);
 
 		write_datapoint_array(C, "preoutput.csv");
+
+		C = reduce_centers(C, k);
+
+		write_datapoint_array(C, "reducedoutput.csv");
+
+		kmeanspp_impl(&X, C);
+
+		write_datapoint_array(C, "output.csv");
+
+		datapoint_array_free(C);
 	}
 
 	df_munmap(&X);

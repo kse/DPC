@@ -307,6 +307,25 @@ void gpu_init(cudaDeviceProp *prop) {
 }
 
 __global__ void
+kmeans_parallel_sample_v1(curandStateMtgp32 *state, int *out, float *dists,
+		int Xs, int k, float cost) {
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+
+	// Distance from current x to group C, squared.
+	//float distsq;
+
+	for(; i < Xs; i += blockDim.x * gridDim.x) {
+		float distsq = dists[i]; // Contains the cost of the i'th vector.
+		distsq *= k/2;
+		distsq = distsq / cost;
+
+		if(curand(&state[blockIdx.x]) < UINT_MAX * distsq) {
+			out[i] = 1;
+		}
+	}
+}
+
+__global__ void
 cost_kernel_v1(int dim, int Cs, float *C, int Xs, float *X, 
 		float *sums, int *mins) {
 	/* Iterator variable */
@@ -394,6 +413,44 @@ __host__ void mtgp32_init(curandStateMtgp32 **states,
 
 }
 
+/*
+ * TODO: Put to use!
+ */
+__global__ void
+sum_reduction_kernel_v1(float *V, int length, float *out) {
+	int i = blockDim.x * blockIdx.x + threadIdx.x;
+	//int offset;
+	int j;
+
+	extern __shared__ float T[];
+
+	for(j = 0; j < (length - 1)/(gridDim.x * blockDim.x) + 1; j++) {
+		/* Load our registers */
+		if(j < length) {
+			T[i] = V[j];
+		}
+
+		__syncthreads();
+
+		int limit = length - (gridDim.x * blockDim.x * j) < blockDim.x ?
+			length - (gridDim.x * blockDim.x * j) : blockDim.x;
+		for(int stride = 1; stride < limit; stride *=2) {
+			__syncthreads();
+
+			if(j < length) {
+				int ind = (threadIdx.x + 1) * stride * 2 -1;
+				if(ind + stride < limit) {
+					T[ind] = T[ind - stride];
+				}
+			}
+		}
+
+		if(threadIdx.x == limit - 1) {
+			out[blockIdx.x * gridDim.x * j] = T[limit - 1];
+		}
+	}
+}
+
 extern "C"
 datapoint_array_t *
 kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
@@ -415,8 +472,8 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 	 * Optimize these numbers for dimensions og cache-amount used per 
 	 * algorithm.
 	 */
-	dim3 numThreads(32,1,1);
-	dim3 numBlocks(10,1,1);
+	dim3 numThreads(256,1,1);
+	dim3 numBlocks(20,1,1);
 
 	int max_centers = k * 3;
 
@@ -440,10 +497,10 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 	int   *d_O;  // Storage for output.
 
 	/*
-	 * Stores the Cost we compute on the GPU
+	 * Stores the Cost() we compute on the GPU
 	 */
-	int   *d_min;
-	float *d_minsum;
+	int   *d_min;    // Minimum c for each x
+	float *d_minsum; // Minimum cost for each x
 
 	curandStateMtgp32 *devMTGPStates;
 	mtgp32_kernel_params *devKernelParams;
@@ -484,7 +541,8 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 	CUDA_CALL( cudaMalloc(&d_minsum, X->len * sizeof(float)) );
 
 
-	float phiOfX;
+	float *costvector;
+	costvector = (float *)malloc(sizeof(float) * X->len);
 
 	// Memory allocated for simple output. 
 	// An int for each x ∈ X, a 1 after each run of kmeans_parallel_naive
@@ -519,7 +577,6 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 		/* 
 		 * Code to print out the minimum tree, not needed unless for debugging.
 		 */
-
 		/*
 		float *mins = (float *)malloc(X->len * sizeof(float));
 		int   *min  = (int *)malloc(X->len * sizeof(int));
@@ -537,16 +594,27 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 		}
 		// */
 
-
-
 		/*
-		kmeans_parallel_naive<<<numBlocks, numThreads>>>(devMTGPStates, 
-				d_X, d_C, d_O, X->dim, Ccount,
-				X->len, numBlocks.x, phiOfX, k);
+		 * TODO: Compute sum on GPU
+		 */
+		cudaError err = cudaMemcpy(costvector, d_minsum, 
+				X->len * sizeof(float),
+				cudaMemcpyDeviceToHost);
+
+		float totalsum = 0.0f;
+		for(int i = 0; i < X->len; i++) {
+			totalsum += costvector[i];
+		}
+
+
+		kmeans_parallel_sample_v1<<<numBlocks, numThreads>>>(devMTGPStates,
+				d_O, d_minsum, X->len, k, totalsum);
+
+		cudaDeviceSynchronize();
 
 		CUDA_CALL( cudaPeekAtLastError() );
 
-		cudaError err = cudaMemcpy(O, d_O, X->len * sizeof(int),
+		err = cudaMemcpy(O, d_O, X->len * sizeof(int),
 				cudaMemcpyDeviceToHost);
 
 		if(err != cudaSuccess) {
@@ -554,6 +622,7 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 					cudaGetErrorString(err));
 			exit(EXIT_FAILURE);
 		}
+
 
 		for(int i = 0; i < X->len; i++) {
 			if(O[i] == 1) {
@@ -564,7 +633,6 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 			}
 		}
 
-
 		for(int i = Ccount; i < C->len; i++) {
 			CUDA_CALL( cudaMemcpy(&d_C[C->dim * i], C->v[i], C->dim * sizeof(float),
 						cudaMemcpyHostToDevice) );
@@ -573,14 +641,12 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 		Ccount = C->len;
 
 		CUDA_CALL( cudaMemset(d_O, '\0', X->len * sizeof(int)) );
-		*/
-
-		break;
 	}
 
-	//printf("Selected %d centers\n", C->len);
+	printf("Selected %d centers\n", C->len);
 
 	free(O);
+	free(costvector);
 	CUDA_CALL(cudaFree(d_min));
 	CUDA_CALL(cudaFree(d_minsum));
 	CUDA_CALL(cudaFree(d_O));

@@ -198,24 +198,9 @@ void kmeanspp_impl(dps_t *X, datapoint_array_t *C) {
 
 		for(i = 0; i < C->len; i++) {
 			for(k = 0; k < C->dim; k++) {
-				//printf("p[%d * %d + %d]/count[%d]\n", C->dim, i, k, i);
-				//printf("     %f/%d\n", p[C->dim * i + k], count[i]);
-
 				C->v[i][k] = 2 * p[C->dim * i + k]/count[i];
 			}
 		}
-
-		/*
-		for(i = 0; i < C->len; i++) {
-			for(j = 0; j < C->dim; j++) {
-				if(j != C->dim - 1) {
-					printf("%f,", C->v[i][j]);
-				} else {
-					printf("%f\n", C->v[i][j]);
-				}
-			}
-		}
-		*/
 
 		cos = cost(X, C);
 		printf("Prev_Cost is:%f\n", prev_cos);
@@ -223,19 +208,6 @@ void kmeanspp_impl(dps_t *X, datapoint_array_t *C) {
 
 		its ++;
 	} while(its < 50);
-	//} while( fabsf(prev_cos - cos) > 100);
-
-	/*
-	for(i = 0; i < C->len; i++) {
-		for(j = 0; j < C->dim; j++) {
-			if(j != C->dim - 1) {
-				printf("%f,", C->v[i][j]);
-			} else {
-				printf("%f\n", C->v[i][j]);
-			}
-		}
-	}
-	*/
 
 	free(p);
 }
@@ -252,11 +224,12 @@ void kmeanspp_init(datapoint_array_t *X, datapoint_array_t *C, int k) {
 	datapoint_array_add(C, X->v[init]);
 
 	while(C->len < k) {
+		float cost =  costpp(X, C);
 		for(int i = 0; i < X->len; i++) {
 			x.v = X->v[i];
 
 			float p = powf(dist(&x, C), 2);
-			p      /= costpp(X, C);
+			p      /= cost;
 
 			int r = rand();
 

@@ -3,31 +3,10 @@ Implementing k-means|| efficiently on CUDA devices. Ready to handle data-sets
 that exceed the size of GPU total memory.
 
 PLAN:
-* Implementer k-means|| som en triviel CPU algoritme, der kan læse data der 
-  passer ind i hukommelsen. 
-* Implementer k-means|| på GPU'en, i en triviel algoritme, der kun kan læse
-  data der passer i hukommelsen.
-
-
-Implementation on the GPU.
-
-Cases for Cost(x, C).
-
-       | x  fits | C  fits |
-----------------------------
-x fits |    x    |         |
-----------------------------
-C fits |    x    |    x    |
-
-The memory hiearchy goes:
-
-Global Memory
-Constant Memory
-Shared Memory
-Register
-
-We want data we read often to go down as far as possible.
+* Overvej skaleringen af tråde, altså hvor mange tråde/blokke vi kan køre
+  for algoritmerne.
+* Lav en formel for hvor meget GPU hukommelse vi skal bruge for (Xs, dim).
 
 Problemer:
 * Weighting af oversamplede punkter i k-means|| er ikke implementeret.
-* State for random sampling
+* State for random sampling is not saved, and therefore predictable.
