@@ -76,17 +76,6 @@ inline float *dfm_getpoint(dps_t *X, int p) {
 	return &X->v[p * X->dim];
 }
 
-// TODO: Implement maybe?
-//float *dfm_getpoint_deep(dps_t *X, int p, dp_t o) {
-//	//int offset = sizeof(int) + sizeof(uint32_t) + X->dim * p;
-//
-//	float *point = malloc(sizeof(float) * X->dim);
-//
-//	memcpy(point, &X->v[p], sizeof(float) * X->dim);
-//
-//	return point;
-//}
-
 void df_mmap(int fd, dps_t *X) {
 	int allocsize = X->len * X->dim * sizeof(float);
 	//printf("Trying to alloc %d bytes\n", allocsize);
@@ -156,7 +145,6 @@ void datapoint_array_add(datapoint_array_t *A, float *p) {
 
 void datapoint_array_free(datapoint_array_t *A) {
 	if(A->deep == 1) {
-		fflush(stdout);
 		for(int i = 0; i < A->len; i++) {
 			free(A->v[i]);
 		}

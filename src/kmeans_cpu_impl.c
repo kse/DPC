@@ -87,17 +87,31 @@ kmeans_parallel_init(dps_t *X, int k) {
 	}
 	*/
 
-	kmeanspp_init(C, Cprime, k);
+	//kmeanspp_init(C, Cprime, k);
 
-	printf(" %f\n", phi);
-	printf("%d datapoints\n", C->len);
-	printf("%f cost of C unminimized\n", cost(X, C));
+	//printf(" %f\n", phi);
+	//printf("%d datapoints\n", C->len);
+	//printf("%f cost of C unminimized\n", cost(X, C));
 	//printf("%f cost of cprime\n", cost(X, Cprime));
 	
 	//printf("Done sampling\n");
 	
+	//datapoint_array_t *res = NULL;
+	//datapoint_array_deepcopy(&res, Cprime);
+	datapoint_array_free(Cprime);
+
+	return C;
+}
+
+datapoint_array_t *reduce_centers(datapoint_array_t *C, int k) {
+	datapoint_array_t *Cprime;
+	datapoint_array_new(&Cprime, C->dim, 0);
+
+	kmeanspp_init(C, Cprime, k);
+
 	datapoint_array_t *res = NULL;
 	datapoint_array_deepcopy(&res, Cprime);
+
 	datapoint_array_free(Cprime);
 	datapoint_array_free(C);
 
@@ -273,8 +287,6 @@ float dist(dp_t *x, datapoint_array_t *C) {
 		c.v = C->v[i];
 
 		for(int j = 0; j < x->dim; j++) {
-			//printf("C[%d] = %f\n", j, c.v[j]);
-			//printf("X[%d] = %f\n", j, x->v[j]);
 			tsum += powf(x->v[j] - c.v[j], 2);
 		}
 

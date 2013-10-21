@@ -32,7 +32,7 @@ struct datapoint_array {
 	int dim;     // Length of *v
 	int deep;    // Whether or not each element in v is allocated for
 				 // this struct
-	float **v;   // The values. What else?
+	float **v;   // The values.
 } __attribute__ ((aligned));
 
 typedef struct datapoints dps_t;

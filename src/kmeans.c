@@ -24,6 +24,7 @@
  */
 long int k = 4;
 int on_cpu = 0;
+int dumb   = 0;
 
 int main(int argc, char **argv) {
 	// Sets global variables, exits on error.
@@ -58,6 +59,12 @@ void init_kmeans(int fd) {
 		 */
 		datapoint_array_t *C = kmeans_parallel_init(&X, k);
 
+		write_datapoint_array(C, "preoutput.csv");
+
+		C = reduce_centers(C, k);
+
+		write_datapoint_array(C, "reducedoutput.csv");
+
 		/*
 		 * Run the k-means Lloyd iteration, this is the time waster.
 		 * So maybe we should do something with the data afterwards?
@@ -65,19 +72,57 @@ void init_kmeans(int fd) {
 		 */
 		kmeanspp_impl(&X, C);
 
+		write_datapoint_array(C, "output.csv");
+
 		/*
 		 * Let go of our data.
 		 */
 		datapoint_array_free(C);
 
-	} else {
-		datapoint_array_t *C = kmeans_parallel_gpu_init(&X, k);
+	} else if(dumb) {
+		datapoint_array_t *C = kmeans_parallel_gpu_init_naive(&X, k);
+
+		write_datapoint_array(C, "preoutput.csv");
+
+		C = reduce_centers(C, k);
+
+		write_datapoint_array(C, "reducedoutput.csv");
 
 		kmeanspp_impl(&X, C);
 
+		write_datapoint_array(C, "output.csv");
+
 		datapoint_array_free(C);
+	} else {
+		datapoint_array_t *C = kmeans_parallel_gpu_init_v1(&X, k);
+
+		write_datapoint_array(C, "preoutput.csv");
 	}
+
 	df_munmap(&X);
+}
+
+void write_datapoint_array(datapoint_array_t *C, char *of) {
+	FILE *file = fopen(of, "w");
+	if(file == NULL) {
+		fprintf(stderr, "Unable to write datapoints: %s\n",
+				strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	for(int i = 0; i < C->len; i++) {
+		for(int j = 0; j < C->dim; j++) {
+			fprintf(file, "%f", C->v[i][j]);
+
+			if(j != C->dim - 1) {
+				fprintf(file, ", ");
+			}
+		}
+
+		fprintf(file, "\n");
+	}
+
+	fclose(file);
 }
 
 void handle_options(int argc, char **argv) {
@@ -85,11 +130,12 @@ void handle_options(int argc, char **argv) {
 	extern int   optind;
 	extern char *optarg;
 
-	static char opt[] = "k:";
+	static char opt[] = "k:cd";
 
 	static struct option long_options[] = {
 		{"clusters",  required_argument, 0, 'k'},
 		{"cpu",       no_argument,       0, 'c'},
+		{"dumb",      no_argument,       0, 'd'},
 		{0,           0,                 0,  0 }     
 	};
 	
@@ -119,6 +165,9 @@ void handle_options(int argc, char **argv) {
 				break;
 			case 'c':
 				on_cpu = 1;
+				break;
+			case 'd':
+				dumb = 1;
 				break;
 			default: // We hit '?'
 				//TODO: Print some usage information.

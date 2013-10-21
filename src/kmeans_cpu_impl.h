@@ -29,5 +29,6 @@ datapoint_array_t *kmeans_parallel_init(dps_t *X, int k);
  */
 void kmeanspp_init(datapoint_array_t *X, datapoint_array_t *C, int k);
 void kmeanspp_impl(dps_t *X, datapoint_array_t *C);
+datapoint_array_t *reduce_centers(datapoint_array_t *C, int k);
 
 #endif
