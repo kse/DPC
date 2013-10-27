@@ -50,6 +50,8 @@ void init_kmeans(int fd) {
 	// MMAP our input file.
 	df_mmap(fd, &X);
 
+	struct timespec start, end;
+
 
 	if(on_cpu) {
 		/*
@@ -57,7 +59,10 @@ void init_kmeans(int fd) {
 		 * TODO: Figure out how many rounds we want to run.
 		 * Gives our sampled centers.
 		 */
+
+		clock_gettime(CLOCK_REALTIME, &start);
 		datapoint_array_t *C = kmeans_parallel_init(&X, k);
+		clock_gettime(CLOCK_REALTIME, &end);
 
 		write_datapoint_array(C, "preoutput.csv");
 
@@ -80,7 +85,9 @@ void init_kmeans(int fd) {
 		datapoint_array_free(C);
 
 	} else if(dumb) {
+		clock_gettime(CLOCK_REALTIME, &start);
 		datapoint_array_t *C = kmeans_parallel_gpu_init_naive(&X, k);
+		clock_gettime(CLOCK_REALTIME, &end);
 
 		write_datapoint_array(C, "preoutput.csv");
 
@@ -95,7 +102,9 @@ void init_kmeans(int fd) {
 		datapoint_array_free(C);
 
 	} else {
+		clock_gettime(CLOCK_REALTIME, &start);
 		datapoint_array_t *C = kmeans_parallel_gpu_init_v1(&X, k);
+		clock_gettime(CLOCK_REALTIME, &end);
 
 		write_datapoint_array(C, "preoutput.csv");
 
@@ -109,6 +118,11 @@ void init_kmeans(int fd) {
 
 		datapoint_array_free(C);
 	}
+
+	int nsec = (end.tv_sec - start.tv_sec) * 1e9 
+		+ (end.tv_nsec - start.tv_nsec);
+
+	printf("%d\n", 1e9);
 
 	df_munmap(&X);
 }

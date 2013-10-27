@@ -68,8 +68,8 @@ kmeans_parallel_init(dps_t *X, int k) {
 		}
 
 		if(Cprime->len > 0) {
-			printf("%f, ", phi);
-			printf("%d, ", j);
+			//printf("%f, ", phi);
+			//printf("%d, ", j);
 			datapoint_array_merge(C, Cprime);
 			phi = cost(X, C);
 		}
@@ -121,7 +121,7 @@ datapoint_array_t *reduce_centers(datapoint_array_t *C, int k) {
 void kmeanspp_impl(dps_t *X, datapoint_array_t *C) {
 	int i, j, k;
 	float cos;
-	float prev_cos;
+	//float prev_cos;
 
 	datapoint_t c;
 	datapoint_t x;
@@ -149,13 +149,13 @@ void kmeanspp_impl(dps_t *X, datapoint_array_t *C) {
 
 	cos = cost(X, C);
 
-	printf("Initial cost %f\n", cos);
+	//printf("Initial cost %f\n", cos);
 
 	int its = 0;
 
 	do {
 		// Remember previous total cost.
-		prev_cos = cos;
+		//prev_cos = cos;
 
 		// Reset counters over each iteration.
 		memset(count, '\0', C->len * sizeof(int));
@@ -203,11 +203,13 @@ void kmeanspp_impl(dps_t *X, datapoint_array_t *C) {
 		}
 
 		cos = cost(X, C);
-		printf("Prev_Cost is:%f\n", prev_cos);
-		printf("Cost is:     %f\n", cos);
+		//printf("Prev_Cost is:%f\n", prev_cos);
+		//printf("Cost is:     %f\n", cos);
 
 		its ++;
 	} while(its < 50);
+
+	printf("Final cost is:     %f\n", cos);
 
 	free(p);
 }

@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O3 -std=c11 -Wall -Wextra -pedantic -g -fomit-frame-pointer
+CFLAGS = -O3 -std=c11 -Wall -Wextra -pedantic -fomit-frame-pointer
 INC = -I src
 LIB = -L lib
 
