@@ -4,7 +4,7 @@ plot_birch <- function() {
 	centers <- read.csv("output.csv", header=FALSE);
 	points  <- read.csv("datasets/birch3.txt", header=FALSE);
 	#c2 <- read.csv("center2.csv", header=FALSE)
-	p <- ggplot(data = d) + geom_point(aes(X, Y), size = 0.2)
+	p <- ggplot(data = points) + geom_point(aes(V1, V2), size = 0.2)
 	#p + geom_point(data = c2, aes(V1, V2), colour = "blue", size= 2) + geom_point(data = c, aes(V1, V2), colour = "red", size = 2)
 	p <- p + geom_point(data = precenters, aes(V1, V2), colour = "blue", size = 1.0);
 	p <- p + geom_point(data = reduced, aes(V1, V2), colour = "green", size = 1.0);
