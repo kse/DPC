@@ -39,18 +39,17 @@ kmeans_parallel_init(dps_t *X, int k) {
 	datapoint_array_t *Cprime;
 	datapoint_array_new(&Cprime, C->dim, 0);
 
-	int logphi = (int)logf(phi);
+	//int logphi = (int)logf(phi);
 
 	int iterations = 0;
-	for(int j = 0; j < logphi; j++) {
+	//for(int j = 0; j < logphi; j++) {
+	while(iterations < 8) {
 		iterations++;
-		/*
-		 * Break out of our loop early?
-		 * TODO: Really?
-		 */
-		if(C->len > 3*k - 1) {
-			break;
-		}
+
+		// TODO: Removing this might be cheating........
+		//if(C->len > 3*k - 1) {
+		//	break;
+		//}
 
 		for(int i = 0; i < X->len; i++) {
 			x.v = dfm_getpoint(X, i);
@@ -77,7 +76,7 @@ kmeans_parallel_init(dps_t *X, int k) {
 		}
 	}
 
-	printf("%d iterations\n", iterations);
+	//printf("%d iterations\n", iterations);
 
 	/*
 	for(int i = 0; i < C->len; i++) {

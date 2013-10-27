@@ -123,7 +123,7 @@ void init_kmeans(int fd) {
 	long long int nsec = (end.tv_sec - start.tv_sec) * 1000000000 
 		+ (end.tv_nsec - start.tv_nsec);
 
-	printf("k-means|| time: %llds.%lldus\n", nsec/1000000000,
+	printf("%lld.%lld,", nsec/1000000000,
 			(nsec%1000000000)/1000);
 
 	df_munmap(&X);

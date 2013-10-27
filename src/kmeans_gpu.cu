@@ -571,11 +571,9 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 	for(int i = 1; i <= f; i++) {
 		int v = ceilf(X->len/powf(1024, i));
 		runsum_len += v + (1024 - (v%1024));
-		printf("v: %d\n", v);
 	}
 
-	printf("f: %d\n", f);
-	printf("Runsum outer: %d\n", runsum_len);
+	//printf("Runsum outer: %d\n", runsum_len);
 
 	float *d_runsum;
 
@@ -605,6 +603,12 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 		int shared_size = C->len * C->dim * sizeof(float)
 			+ numThreads.x * sizeof(float) * X->dim;
 
+		if(shared_size > 1024*48) {
+			fprintf(stderr, "Too much shared memory in use: %d\n",
+					shared_size);
+			exit(EXIT_FAILURE);
+		}
+
 		cost_kernel_v2<2><<<numBlocks, numThreads, shared_size>>>(X->dim, 
 				C->len, d_C, X->len, d_X, d_minsum, d_min);
 
@@ -628,7 +632,7 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 		// Compute ϕ_X(C)
 		float phi = do_reduce(d_minsum, X->len, d_runsum);
 
-		kmeans_parallel_sample_v1<<<numBlocks, numThreads>>>(devMTGPStates,
+		kmeans_parallel_sample_v1<<<numBlocks, 256>>>(devMTGPStates,
 				d_O, d_minsum, X->len, k, phi);
 
 		cudaDeviceSynchronize();
@@ -666,7 +670,7 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 	}
 
 	//printf("Selected %d centers\n", C->len);
-	printf("%d iterations\n", iterations);
+	//printf("%d iterations\n", iterations);
 
 	free(O);
 	CUDA_CALL( cudaFree(d_runsum) );
