@@ -22,9 +22,13 @@
 /*
  * The amount k of clusters we want to find
  */
-long int k = 4;
-int on_cpu = 0;
-int dumb   = 0;
+static long int k    = 4;
+static int on_cpu    = 0;
+static int dumb      = 0;
+static int output    = 0;
+static int full      = 0;
+static int benchmark = 1;
+
 int blocksize = 1024;
 
 int main(int argc, char **argv) {
@@ -65,20 +69,28 @@ void init_kmeans(int fd) {
 		datapoint_array_t *C = kmeans_parallel_init(&X, k);
 		clock_gettime(CLOCK_REALTIME, &end);
 
-		//write_datapoint_array(C, "preoutput.csv");
+		if(output) {
+			write_datapoint_array(C, "preoutput.csv");
+		}
 
-		//C = reduce_centers(C, k);
+		if(full) {
+			C = reduce_centers(C, k);
 
-		//write_datapoint_array(C, "reducedoutput.csv");
+			if(output) {
+				write_datapoint_array(C, "reducedoutput.csv");
+			}
 
-		/*
-		 * Run the k-means Lloyd iteration, this is the time waster.
-		 * So maybe we should do something with the data afterwards?
-		 * Like print it, so we can plot it..
-		 */
-		//kmeanspp_impl(&X, C);
+			/*
+			 * Run the k-means Lloyd iteration, this is the time waster.
+			 * So maybe we should do something with the data afterwards?
+			 * Like print it, so we can plot it..
+			 */
+			kmeanspp_impl(&X, C);
 
-		//write_datapoint_array(C, "output.csv");
+			if(output) {
+				write_datapoint_array(C, "output.csv");
+			}
+		}
 
 		/*
 		 * Let go of our data.
@@ -90,15 +102,23 @@ void init_kmeans(int fd) {
 		datapoint_array_t *C = kmeans_parallel_gpu_init_naive(&X, k);
 		clock_gettime(CLOCK_REALTIME, &end);
 
-		//write_datapoint_array(C, "preoutput.csv");
+		if(output) {
+			write_datapoint_array(C, "preoutput.csv");
+		}
 
-		//C = reduce_centers(C, k);
+		if(full) {
+			C = reduce_centers(C, k);
 
-		//write_datapoint_array(C, "reducedoutput.csv");
+			if(output) {
+				write_datapoint_array(C, "reducedoutput.csv");
+			}
 
-		//kmeanspp_impl(&X, C);
+			kmeanspp_impl(&X, C);
 
-		//write_datapoint_array(C, "output.csv");
+			if(output) {
+				write_datapoint_array(C, "output.csv");
+			}
+		}
 
 		datapoint_array_free(C);
 
@@ -107,15 +127,23 @@ void init_kmeans(int fd) {
 		datapoint_array_t *C = kmeans_parallel_gpu_init_v1(&X, k);
 		clock_gettime(CLOCK_REALTIME, &end);
 
-		//write_datapoint_array(C, "preoutput.csv");
+		if(output) {
+			write_datapoint_array(C, "preoutput.csv");
+		}
 
-		//C = reduce_centers(C, k);
+		if(full) {
+			C = reduce_centers(C, k);
 
-		//write_datapoint_array(C, "reducedoutput.csv");
+			if(output) {
+				write_datapoint_array(C, "reducedoutput.csv");
+			}
 
-		//kmeanspp_impl(&X, C);
+			kmeanspp_impl(&X, C);
 
-		//write_datapoint_array(C, "output.csv");
+			if(output) {
+				write_datapoint_array(C, "output.csv");
+			}
+		}
 
 		datapoint_array_free(C);
 	}
@@ -123,8 +151,9 @@ void init_kmeans(int fd) {
 	long long int nsec = (end.tv_sec - start.tv_sec) * 1000000000 
 		+ (end.tv_nsec - start.tv_nsec);
 
-	printf("%lld.%lld,", nsec/1000000000,
-			(nsec%1000000000)/1000);
+	if(benchmark) {
+		printf("%lld.%lld,", nsec/1000000000, (nsec%1000000000)/1000);
+	}
 
 	df_munmap(&X);
 }
@@ -157,13 +186,16 @@ void handle_options(int argc, char **argv) {
 	extern int   optind;
 	extern char *optarg;
 
-	static char opt[] = "k:cdb:";
+	static char opt[] = "k:cdb:fo";
 
 	static struct option long_options[] = {
 		{"clusters",  required_argument, 0, 'k'},
 		{"cpu",       no_argument,       0, 'c'},
 		{"dumb",      no_argument,       0, 'd'},
 		{"blocksize", required_argument, 0, 'b'},
+		{"full",      no_argument,       0, 'f'},
+		{"output",    no_argument,       0, 'o'},
+		{"benchmark", no_argument,       0,  0},
 		{0,           0,                 0,  0 }     
 	};
 	
@@ -196,6 +228,12 @@ void handle_options(int argc, char **argv) {
 				break;
 			case 'd':
 				dumb = 1;
+				break;
+			case 'o':
+				output = 1;
+				break;
+			case 'f':
+				full = 1;
 				break;
 			case 'b': 
 				blocksize = strtol(optarg, &end, 10);
