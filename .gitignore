@@ -4,3 +4,4 @@ build/
 output
 kmeans
 csvconvert
+bm.out
