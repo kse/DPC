@@ -5,7 +5,7 @@ LIB = -L lib
 
 CUDA_LIB  ?= /opt/cuda/lib64
 CUDA_INC  ?= /opt/cuda/include
-CUDA_FLAGS = --ptxas-options=-v
+CUDA_FLAGS = 
 
 NVCC ?= nvcc
 
@@ -17,6 +17,10 @@ KMEANS  = build/kmeans.o build/datafile.o build/kmeans_cpu_impl.o
 KMEANS += build/kmeans_gpu.o
 
 all: kmeans csvconvert
+
+debug: CUDA_FLAGS += --ptxas-options=-v -g -G
+debug: CFLAGS     += -g
+debug: kmeans csvconvert
 
 kmeans: $(KMEANS)
 	$(CC) $(CFLAGS) $(LIB) -o $@ $^ -L $(CUDA_LIB) $(CC_LINK)
