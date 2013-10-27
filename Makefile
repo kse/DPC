@@ -1,10 +1,13 @@
 CC = gcc
-CFLAGS = -O3 -std=c11 -Wall -Wextra -pedantic -fomit-frame-pointer
+CFLAGS = -O3 -std=c99 -Wall -Wextra -pedantic -fomit-frame-pointer
 INC = -I src
 LIB = -L lib
 
-CUDA_LIB  ?= -L /opt/cuda/lib64
+CUDA_LIB  ?= /opt/cuda/lib64
+CUDA_INC  ?= /opt/cuda/include
 CUDA_FLAGS = --ptxas-options=-v
+
+NVCC ?= nvcc
 
 CC_LINK = -lm -lcuda -lcudart -lstdc++
 
@@ -16,7 +19,7 @@ KMEANS += build/kmeans_gpu.o
 all: kmeans csvconvert
 
 kmeans: $(KMEANS)
-	$(CC) $(CFLAGS) $(LIB) -o $@ $^ $(CUDA_LIB) $(CC_LINK)
+	$(CC) $(CFLAGS) $(LIB) -o $@ $^ -L $(CUDA_LIB) $(CC_LINK)
 
 csvconvert: $(CSVCONVERT)
 	$(CC) $(CFLAGS) $(LIB) -o $@ $^
@@ -27,7 +30,7 @@ build/%.o: src/%.c
 
 build/%.o: src/%.cu
 	mkdir -p build
-	nvcc $< -o $@ -lcuda -c $(INC) $(CUDA_FLAGS)
+	$(NVCC) $< -o $@ -lcuda -c $(INC) -I $(CUDA_INC) $(CUDA_FLAGS)
 
 clean:
 	rm -rf build
