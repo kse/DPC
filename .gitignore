@@ -2,3 +2,5 @@
 datasets/
 build/
 output
+kmeans
+csvconvert
