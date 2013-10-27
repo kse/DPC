@@ -41,7 +41,9 @@ kmeans_parallel_init(dps_t *X, int k) {
 
 	int logphi = (int)logf(phi);
 
+	int iterations = 0;
 	for(int j = 0; j < logphi; j++) {
+		iterations++;
 		/*
 		 * Break out of our loop early?
 		 * TODO: Really?
@@ -74,6 +76,8 @@ kmeans_parallel_init(dps_t *X, int k) {
 			phi = cost(X, C);
 		}
 	}
+
+	printf("%d iterations\n", iterations);
 
 	/*
 	for(int i = 0; i < C->len; i++) {

@@ -485,15 +485,17 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 	cudaDeviceProp prop;
 	gpu_init(&prop);
 
+	extern int blocksize;
+
 	/*
 	 * TODO:
 	 * Optimize these numbers for dimensions og cache-amount used per 
 	 * algorithm.
 	 */
-	dim3 numThreads(1024,1,1);
-	dim3 numBlocks(20,1,1);
+	dim3 numThreads(blocksize,1,1);
+	dim3 numBlocks(50,1,1);
 
-	int max_centers = k * 3;
+	int max_centers = k * 10;
 
 	// Figure out if we can fit the data on the GPU
 	size_t mem = prop.totalGlobalMem;
@@ -564,14 +566,16 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 
 	// Log(1024)
 	int f = ceilf(logf(X->len)/logf(1024.0f));
-	int runsum_len;// = ceilf(X->len/1024);
+	int runsum_len = 0;// = ceilf(X->len/1024);
 
-	for(int i = 1; i < f; i++) {
-		int v = ceilf(X->len/ powf(1024, i));
+	for(int i = 1; i <= f; i++) {
+		int v = ceilf(X->len/powf(1024, i));
 		runsum_len += v + (1024 - (v%1024));
+		printf("v: %d\n", v);
 	}
 
-	//printf("Runsum outer: %d\n", runsum_len);
+	printf("f: %d\n", f);
+	printf("Runsum outer: %d\n", runsum_len);
 
 	float *d_runsum;
 
@@ -593,7 +597,9 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 		exit(EXIT_FAILURE);
 	}
 
-	while(Ccount < max_centers) {
+	int iterations = 0;
+	while(Ccount < max_centers && iterations < 8) {
+		iterations++;
 		cudaError err;
 
 		int shared_size = C->len * C->dim * sizeof(float)
@@ -659,7 +665,8 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 		CUDA_CALL( cudaMemset(d_O, '\0', X->len * sizeof(int)) );
 	}
 
-	printf("Selected %d centers\n", C->len);
+	//printf("Selected %d centers\n", C->len);
+	printf("%d iterations\n", iterations);
 
 	free(O);
 	CUDA_CALL( cudaFree(d_runsum) );
