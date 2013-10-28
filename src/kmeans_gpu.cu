@@ -470,11 +470,6 @@ float do_reduce(float *d_minsum, int len, float *d_runsum) {
 	*/
 }
 
-template <int d>
-__global__ void
-cost_kernel_v2(int dim, int Cs, float *C, int Xs, float *X, 
-		float *sums, int *mins);
-
 extern "C"
 datapoint_array_t *
 kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
@@ -609,7 +604,7 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 			exit(EXIT_FAILURE);
 		}
 
-		cost_kernel_v2<2><<<numBlocks, numThreads, shared_size>>>(X->dim, 
+		cost_kernel_v1<<<numBlocks, numThreads, shared_size>>>(X->dim, 
 				C->len, d_C, X->len, d_X, d_minsum, d_min);
 
 		cudaDeviceSynchronize(); // Nice for checking if there is an error.
@@ -681,76 +676,4 @@ kmeans_parallel_gpu_init_v1(dps_t *X, int k) {
 	CUDA_CALL(cudaFree(d_X));
 
 	return C;
-}
-
-
-__host__ void
-kmeans_gpu_v1(float *d_X, float *d_C, int Xs, int Cs, float *sums, int *mins) {
-
-}
-
-template <int d>
-__global__ void
-cost_kernel_v2(int dim, int Cs, float *C, int Xs, float *X, 
-		float *sums, int *mins) {
-	/* Iterator variable */
-	int i, j, k;
-	int regstor[d];
-
-	/* 
-	 * Dynamic shared storage general pointer.
-	 */
-	extern __shared__ int shared[];
-
-	/* Space for all of our centroids. */
-	float *centroids = (float *) shared;
-
-	/* Space for the results of our calculation */
-	float *points    = (float *)&shared[dim * Cs];
-
-	/*
-	 * Our threadIdx.x runs from 1 to dim, so we do a simple check.
-	 */
-	for(j = threadIdx.x; j < dim * Cs; j += blockDim.x) {
-		centroids[j] = C[j];
-	}
-
-	float min = FLT_MAX;
-	int  minc = 0;
-	float sum;
-
-	for(k = 0; k < ((Xs-1) / blockDim.x * gridDim.x) + 1 ; k++) {
-		int offset = gridDim.x * blockDim.x * dim * k + 
-			blockDim.x * dim * blockIdx.x;
-
-		__syncthreads();
-
-		if(offset + threadIdx.x < Xs * dim) {
-			for(j = threadIdx.x; j < dim * blockDim.x; j += blockDim.x) {
-				points[j] = X[j + offset];
-			}
-		}
-
-		__syncthreads();
-
-		if(offset + threadIdx.x < Xs * dim) {
-			min = FLT_MAX;
-			for(i = 0; i < Cs; i++) {
-				sum = 0.0f;
-
-				for(j = 0; j < dim; j++) {
-					sum += powf(points[threadIdx.x * dim + j]
-							- centroids[i * dim + j], 2);
-				}
-
-				if(sum < min) {
-					min = sum;
-					minc = i;
-				}
-			}
-
-			sums[gridDim.x * blockDim.x * k + blockDim.x * blockIdx.x + threadIdx.x] = min;
-			mins[gridDim.x * blockDim.x * k + blockDim.x * blockIdx.x + threadIdx.x] = minc;
-		}
-	}
 }
